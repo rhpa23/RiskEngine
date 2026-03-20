@@ -97,18 +97,6 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         })}
       </nav>
 
-      <div className="px-6 mt-6">
-        <Link href="/new">
-          <motion.button
-            whileTap={{ scale: 0.98 }}
-            className="w-full bg-primary text-on-primary py-3 rounded-xl font-headline font-bold text-sm shadow-lg shadow-primary/20 hover:bg-primary-dim transition-all flex items-center justify-center gap-2"
-          >
-            <Plus className="w-4 h-4" />
-            Nova Avaliação
-          </motion.button>
-        </Link>
-      </div>
-
       <div className="mt-auto px-4 space-y-1">
         {bottomNavItems.map((item) => (
           <Link

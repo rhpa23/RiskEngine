@@ -4,19 +4,71 @@ import React from 'react';
 import { Sidebar } from '@/components/Sidebar';
 import { TopBar } from '@/components/TopBar';
 import { RiskTable } from '@/components/RiskTable';
-import { Filter, Download, AlertTriangle, Clock, BarChart3, ShieldCheck, ArrowRight, Zap, Plus } from 'lucide-react';
+import { FilterModal, FilterState } from '@/components/FilterModal';
+import { Filter, Download, AlertTriangle, Clock, BarChart3, ShieldCheck, ArrowRight, Zap, Plus, X } from 'lucide-react';
 import { motion } from 'motion/react';
 import Link from 'next/link';
 
-const metrics = [
-  { label: 'Riscos Críticos', value: '12', icon: AlertTriangle, color: 'border-error', iconColor: 'text-error' },
-  { label: 'Mitigações Abertas', value: '28', icon: Clock, color: 'border-secondary', iconColor: 'text-secondary' },
-  { label: 'Gravidade Média', value: '6.4', icon: BarChart3, color: 'border-primary', iconColor: 'text-primary' },
-  { label: 'Pontuação de Compliance', value: '94%', icon: ShieldCheck, color: 'border-outline-variant', iconColor: 'text-outline-variant' },
-];
+interface Risk {
+  id: string;
+  risk_id: string;
+  date: string;
+  nature: string;
+  risk: string;
+  cause: string;
+  consequence: string;
+  trigger: string;
+  status: string;
+  p: number;
+  i: number;
+  weight: number;
+  severity: string;
+}
 
 export default function RegistryPage() {
   const [isSidebarOpen, setIsSidebarOpen] = React.useState(false);
+  const [isFilterModalOpen, setIsFilterModalOpen] = React.useState(false);
+  const [availableWeights, setAvailableWeights] = React.useState<string[]>([]);
+  const [filteredRisks, setFilteredRisks] = React.useState<Risk[]>([]);
+  const [filters, setFilters] = React.useState<FilterState>({
+    risk: '',
+    nature: '',
+    status: '',
+    weight: '',
+    severity: ''
+  });
+
+  const metrics = React.useMemo(() => {
+    const criticalCount = filteredRisks.filter(r => r.status === 'Crítico').length;
+    const mitigatingCount = filteredRisks.filter(r => r.status === 'Mitigando').length;
+    
+    const totalWeight = filteredRisks.reduce((acc, r) => acc + Number(r.weight), 0);
+    const avgWeight = filteredRisks.length > 0 ? (totalWeight / filteredRisks.length).toFixed(1) : '0.0';
+    
+    // Compliance Score: Percentage of risks that are NOT critical
+    const complianceScore = filteredRisks.length > 0 
+      ? Math.round(((filteredRisks.length - criticalCount) / filteredRisks.length) * 100) 
+      : 100;
+
+    return [
+      { label: 'Riscos Críticos', value: criticalCount.toString(), icon: AlertTriangle, color: 'border-error', iconColor: 'text-error' },
+      { label: 'Mitigações Abertas', value: mitigatingCount.toString(), icon: Clock, color: 'border-secondary', iconColor: 'text-secondary' },
+      { label: 'Gravidade Média', value: avgWeight, icon: BarChart3, color: 'border-primary', iconColor: 'text-primary' },
+      { label: 'Pontuação de Compliance', value: `${complianceScore}%`, icon: ShieldCheck, color: 'border-outline-variant', iconColor: 'text-outline-variant' },
+    ];
+  }, [filteredRisks]);
+
+  const activeFilterCount = Object.values(filters).filter(v => v !== '').length;
+
+  const clearFilters = () => {
+    setFilters({
+      risk: '',
+      nature: '',
+      status: '',
+      weight: '',
+      severity: ''
+    });
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -30,17 +82,41 @@ export default function RegistryPage() {
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 sm:gap-0">
               <div className="space-y-1">
                 <span className="text-[10px] font-bold tracking-widest text-primary uppercase">Visão Geral do Registro</span>
-                <h2 className="text-2xl md:text-3xl font-headline font-extrabold text-on-surface tracking-tight">Registro de Riscos Empresariais</h2>
+                <h2 className="text-2xl md:text-3xl font-headline font-extrabold text-on-surface tracking-tight">Registro de Riscos</h2>
               </div>
-              <div className="flex items-center gap-2 md:gap-3 w-full sm:w-auto">
-                <button className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-3 md:px-4 py-2 bg-surface-container-high hover:bg-surface-container-highest text-on-surface-variant rounded-lg text-xs font-semibold transition-all">
-                  <Filter className="w-3.5 h-3.5" />
-                  Filtros
-                </button>
-                <button className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-3 md:px-4 py-2 bg-surface-container-high hover:bg-surface-container-highest text-on-surface-variant rounded-lg text-xs font-semibold transition-all">
-                  <Download className="w-3.5 h-3.5" />
-                  Exportar
-                </button>
+              <div className="flex flex-col items-end gap-2 w-full sm:w-auto">
+                <div className="flex items-center gap-2 md:gap-3 w-full sm:w-auto">
+                  <button 
+                    onClick={() => setIsFilterModalOpen(true)}
+                    className={cn(
+                      "flex-1 sm:flex-none flex items-center justify-center gap-2 px-3 md:px-4 py-2 rounded-lg text-xs font-semibold transition-all relative",
+                      activeFilterCount > 0 
+                        ? "bg-primary text-on-primary shadow-md shadow-primary/20" 
+                        : "bg-surface-container-high hover:bg-surface-container-highest text-on-surface-variant"
+                    )}
+                  >
+                    <Filter className="w-3.5 h-3.5" />
+                    Filtros
+                    {activeFilterCount > 0 && (
+                      <span className="absolute -top-1 -right-1 w-4 h-4 bg-error text-white text-[8px] flex items-center justify-center rounded-full border border-surface">
+                        {activeFilterCount}
+                      </span>
+                    )}
+                  </button>
+                  <button className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-3 md:px-4 py-2 bg-surface-container-high hover:bg-surface-container-highest text-on-surface-variant rounded-lg text-xs font-semibold transition-all">
+                    <Download className="w-3.5 h-3.5" />
+                    Exportar
+                  </button>
+                </div>
+                {activeFilterCount > 0 && (
+                  <button 
+                    onClick={clearFilters}
+                    className="text-[10px] font-bold text-error flex items-center gap-1 hover:underline"
+                  >
+                    <X className="w-3 h-3" />
+                    Limpar Filtros
+                  </button>
+                )}
               </div>
             </div>
 
@@ -58,7 +134,11 @@ export default function RegistryPage() {
             </div>
 
             {/* Table */}
-            <RiskTable />
+            <RiskTable 
+              filters={filters} 
+              onWeightsUpdate={setAvailableWeights}
+              onFilteredDataUpdate={setFilteredRisks}
+            />
 
             {/* Bento Insights */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -66,7 +146,11 @@ export default function RegistryPage() {
                 <div className="space-y-4">
                   <h4 className="text-sm font-headline font-bold">Pontuação de Saúde do Registro</h4>
                   <p className="text-xs text-on-surface-variant max-w-sm">
-                    A qualidade da avaliação atual é alta. 98% dos riscos críticos possuem planos de mitigação ativos. 2 riscos estão pendentes de verificação de gatilho.
+                    {filteredRisks.length > 0 ? (
+                      `A saúde do registro é baseada na criticidade dos riscos. Atualmente, ${metrics[3].value} dos riscos estão sob controle ou em mitigação.`
+                    ) : (
+                      'Nenhum dado disponível para calcular a saúde do registro.'
+                    )}
                   </p>
                   <button className="text-xs font-bold text-primary flex items-center gap-1 group">
                     Ver diagnóstico completo 
@@ -76,9 +160,21 @@ export default function RegistryPage() {
                 <div className="relative w-24 h-24 flex-shrink-0">
                   <svg className="w-full h-full transform -rotate-90">
                     <circle className="text-outline-variant/20" cx="48" cy="48" fill="transparent" r="40" stroke="currentColor" strokeWidth="8"></circle>
-                    <circle className="text-primary" cx="48" cy="48" fill="transparent" r="40" stroke="currentColor" strokeDasharray="251.2" strokeDashoffset="30" strokeWidth="8"></circle>
+                    <circle 
+                      className="text-primary transition-all duration-500 ease-in-out" 
+                      cx="48" 
+                      cy="48" 
+                      fill="transparent" 
+                      r="40" 
+                      stroke="currentColor" 
+                      strokeDasharray="251.2" 
+                      strokeDashoffset={251.2 - (251.2 * parseInt(metrics[3].value)) / 100} 
+                      strokeWidth="8"
+                    ></circle>
                   </svg>
-                  <div className="absolute inset-0 flex items-center justify-center font-headline font-extrabold text-xl text-primary">88</div>
+                  <div className="absolute inset-0 flex items-center justify-center font-headline font-extrabold text-xl text-primary">
+                    {metrics[3].value.replace('%', '')}
+                  </div>
                 </div>
               </div>
 
@@ -119,6 +215,15 @@ export default function RegistryPage() {
           </span>
         </motion.button>
       </Link>
+      
+      <FilterModal 
+        key={isFilterModalOpen ? 'open' : 'closed'}
+        isOpen={isFilterModalOpen}
+        onClose={() => setIsFilterModalOpen(false)}
+        onApply={setFilters}
+        initialFilters={filters}
+        availableWeights={availableWeights}
+      />
     </div>
   );
 }

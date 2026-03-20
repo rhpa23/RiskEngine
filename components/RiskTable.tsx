@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils';
 import Link from 'next/link';
 import { ConfirmationModal } from './ConfirmationModal';
 import { supabase } from '@/lib/supabase';
+import { FilterState } from './FilterModal';
 
 interface Risk {
   id: string;
@@ -23,7 +24,13 @@ interface Risk {
   severity: string;
 }
 
-export function RiskTable() {
+interface RiskTableProps {
+  filters?: FilterState;
+  onWeightsUpdate?: (weights: string[]) => void;
+  onFilteredDataUpdate?: (risks: Risk[]) => void;
+}
+
+export function RiskTable({ filters, onWeightsUpdate, onFilteredDataUpdate }: RiskTableProps) {
   const [risks, setRisks] = useState<Risk[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
@@ -37,7 +44,7 @@ export function RiskTable() {
     riskId: null
   });
 
-  const fetchRisks = async () => {
+  const fetchRisks = React.useCallback(async () => {
     setLoading(true);
     try {
       // Ensure we have a session
@@ -53,17 +60,45 @@ export function RiskTable() {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setRisks(data || []);
+      const fetchedRisks = data || [];
+      setRisks(fetchedRisks);
+      
+      // Extract unique weights for filter
+      if (onWeightsUpdate) {
+        const uniqueWeights = Array.from(new Set(fetchedRisks.map(r => Number(r.weight).toFixed(2))))
+          .sort((a, b) => Number(a) - Number(b));
+        onWeightsUpdate(uniqueWeights);
+      }
     } catch (error) {
       console.error('Erro ao buscar riscos:', error);
     } finally {
       setLoading(false);
     }
-  };
+  }, [onWeightsUpdate]);
 
   useEffect(() => {
     fetchRisks();
-  }, []);
+  }, [fetchRisks]);
+
+  const filteredRisks = React.useMemo(() => {
+    return risks.filter(risk => {
+      if (!filters) return true;
+
+      const matchesRisk = !filters.risk || risk.risk.toLowerCase().includes(filters.risk.toLowerCase());
+      const matchesNature = !filters.nature || risk.nature === filters.nature;
+      const matchesStatus = !filters.status || risk.status === filters.status;
+      const matchesWeight = !filters.weight || Number(risk.weight).toFixed(2) === filters.weight;
+      const matchesSeverity = !filters.severity || risk.severity === filters.severity;
+
+      return matchesRisk && matchesNature && matchesStatus && matchesWeight && matchesSeverity;
+    });
+  }, [risks, filters]);
+
+  useEffect(() => {
+    if (onFilteredDataUpdate) {
+      onFilteredDataUpdate(filteredRisks);
+    }
+  }, [filteredRisks, onFilteredDataUpdate]);
 
   const openModal = (type: 'remove' | 'draft', riskId: string) => {
     setModalConfig({ isOpen: true, type, riskId });
@@ -120,14 +155,14 @@ export function RiskTable() {
             </tr>
           </thead>
           <tbody className="divide-y divide-outline-variant/10">
-            {risks.length === 0 ? (
+            {filteredRisks.length === 0 ? (
               <tr>
                 <td colSpan={13} className="px-6 py-12 text-center text-on-surface-variant opacity-60 italic text-sm">
-                  Nenhum risco registrado no sistema.
+                  {risks.length === 0 ? 'Nenhum risco registrado no sistema.' : 'Nenhum risco corresponde aos filtros aplicados.'}
                 </td>
               </tr>
             ) : (
-              risks.map((risk, index) => (
+              filteredRisks.map((risk, index) => (
                 <tr key={risk.id} className={cn("hover:bg-surface-container-high transition-colors group", index % 2 !== 0 ? "bg-surface-container-low" : "bg-surface-container-lowest")}>
                   <td className="px-6 py-4 font-bold text-xs sticky left-0 bg-inherit z-10">{risk.risk_id}</td>
                   <td className="px-6 py-4 text-xs whitespace-nowrap">{new Date(risk.date).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })}</td>

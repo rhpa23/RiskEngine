@@ -13,8 +13,8 @@ const manrope = Manrope({
 });
 
 export const metadata: Metadata = {
-  title: 'Risk Engine Enterprise',
-  description: 'Plataforma de gestão de riscos de nível empresarial',
+  title: 'Risk Engine',
+  description: 'Plataforma de gestão de riscos de projetos',
 };
 
 export default function RootLayout({children}: {children: React.ReactNode}) {
