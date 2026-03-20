@@ -64,17 +64,27 @@ export function TopBar({ onMenuClick }: TopBarProps) {
         
         <div className="flex items-center gap-3">
           <div className="text-right hidden sm:block">
-            <p className="text-[11px] font-bold leading-none">{user?.name || 'Carregando...'}</p>
-            <p className="text-[10px] opacity-60">Gestor de Riscos</p>
+            <p className="text-[11px] font-bold leading-none truncate max-w-[120px]">
+              {user?.name || 'Usuário'}
+            </p>
+            <p className="text-[10px] opacity-60 truncate max-w-[120px]">
+              {user?.email || 'Gestor de Riscos'}
+            </p>
           </div>
-          <div className="relative w-8 h-8 rounded-full overflow-hidden border border-outline-variant/20">
-            <Image 
-              src="https://picsum.photos/seed/avatar/100/100" 
-              alt="Avatar do usuário" 
-              fill
-              className="object-cover"
-              referrerPolicy="no-referrer"
-            />
+          <div className="relative w-8 h-8 rounded-full overflow-hidden border border-outline-variant/20 bg-primary/10 flex items-center justify-center">
+            {user?.name ? (
+              <Image 
+                src={`https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=random&color=fff`} 
+                alt="Avatar do usuário" 
+                fill
+                className="object-cover"
+                referrerPolicy="no-referrer"
+              />
+            ) : (
+              <div className="text-primary font-bold text-xs">
+                {user?.email?.[0].toUpperCase() || 'U'}
+              </div>
+            )}
           </div>
         </div>
       </div>
