@@ -247,7 +247,7 @@ export default function NewRiskPage() {
                               : "bg-surface-container-high text-on-surface-variant hover:bg-primary-container hover:text-primary"
                           )}
                         >
-                          {val === 1 ? 'Muito Baixa (1)' : val === 2 ? 'Baixa (2)' : val === 3 ? 'Média (3)' : val === 4 ? 'Alta (4)' : 'Muito Alta (5)'}
+                          {val === 1 ? 'Muito Baixa' : val === 2 ? 'Baixa' : val === 3 ? 'Média' : val === 4 ? 'Alta' : 'Muito Alta'}
                         </button>
                       ))}
                     </div>
@@ -270,7 +270,7 @@ export default function NewRiskPage() {
                               : "bg-surface-container-high text-on-surface-variant hover:bg-primary-container hover:text-primary"
                           )}
                         >
-                          {val === 1 ? 'Mínimo (1)' : val === 2 ? 'Menor (2)' : val === 3 ? 'Moderado (3)' : val === 4 ? 'Maior (4)' : 'Catastrófico (5)'}
+                          {val === 1 ? 'Mínimo' : val === 2 ? 'Menor' : val === 3 ? 'Moderado' : val === 4 ? 'Maior' : 'Catastrófico'}
                         </button>
                       ))}
                     </div>

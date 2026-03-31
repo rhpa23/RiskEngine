@@ -147,8 +147,8 @@ export function RiskTable({ filters, onWeightsUpdate, onFilteredDataUpdate }: Ri
               <th className="px-6 py-4 hidden xl:table-cell">Consequência</th>
               <th className="px-6 py-4 hidden md:table-cell">Gatilho</th>
               <th className="px-6 py-4">Status</th>
-              <th className="px-6 py-4 text-center hidden sm:table-cell">P</th>
-              <th className="px-6 py-4 text-center hidden sm:table-cell">I</th>
+              <th className="px-6 py-4 text-center hidden sm:table-cell">Probabilidade</th>
+              <th className="px-6 py-4 text-center hidden sm:table-cell">Impacto</th>
               <th className="px-6 py-4 text-center">Peso</th>
               <th className="px-6 py-4">Severidade</th>
               <th className="px-4 py-4 sticky right-0 bg-surface-container-high z-30 text-center">Ações</th>
@@ -192,8 +192,12 @@ export function RiskTable({ filters, onWeightsUpdate, onFilteredDataUpdate }: Ri
                       <span className="text-[10px] font-bold uppercase">{risk.status}</span>
                     </div>
                   </td>
-                  <td className="px-6 py-4 text-center text-xs font-bold hidden sm:table-cell">{risk.p}</td>
-                  <td className="px-6 py-4 text-center text-xs font-bold hidden sm:table-cell">{risk.i}</td>
+                  <td className="px-6 py-4 text-center text-xs font-bold hidden sm:table-cell">
+                    {risk.p === 1 ? 'Muito Baixa' : risk.p === 2 ? 'Baixa' : risk.p === 3 ? 'Média' : risk.p === 4 ? 'Alta' : 'Muito Alta'}
+                  </td>
+                  <td className="px-6 py-4 text-center text-xs font-bold hidden sm:table-cell">
+                    {risk.i === 1 ? 'Mínimo' : risk.i === 2 ? 'Menor' : risk.i === 3 ? 'Moderado' : risk.i === 4 ? 'Maior' : 'Catastrófico'}
+                  </td>
                   <td className="px-6 py-4 text-center text-xs">{Number(risk.weight).toFixed(1)}</td>
                   <td className="px-6 py-4">
                     <span className={cn(
