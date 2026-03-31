@@ -5,8 +5,8 @@ import { Sidebar } from '@/components/Sidebar';
 import { TopBar } from '@/components/TopBar';
 import { RiskTable } from '@/components/RiskTable';
 import { FilterModal, FilterState } from '@/components/FilterModal';
-import { Filter, Download, AlertTriangle, Clock, BarChart3, ShieldCheck, ArrowRight, Zap, Plus, X } from 'lucide-react';
-import { motion } from 'motion/react';
+import { Filter, Download, AlertTriangle, Clock, BarChart3, ShieldCheck, ArrowRight, Zap, Plus, X, FileJson, FileText as FilePdf } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 import Link from 'next/link';
 
 interface Risk {
@@ -28,6 +28,7 @@ interface Risk {
 export default function RegistryPage() {
   const [isSidebarOpen, setIsSidebarOpen] = React.useState(false);
   const [isFilterModalOpen, setIsFilterModalOpen] = React.useState(false);
+  const [isExportMenuOpen, setIsExportMenuOpen] = React.useState(false);
   const [availableWeights, setAvailableWeights] = React.useState<string[]>([]);
   const [filteredRisks, setFilteredRisks] = React.useState<Risk[]>([]);
   const [filters, setFilters] = React.useState<FilterState>({
@@ -70,6 +71,83 @@ export default function RegistryPage() {
     });
   };
 
+  const exportToCSV = () => {
+    if (filteredRisks.length === 0) return;
+    
+    const headers = ['ID', 'Data', 'Natureza', 'Risco', 'Causa', 'Consequência', 'Gatilho', 'Status', 'Probabilidade', 'Impacto', 'Peso', 'Severidade'];
+    const csvContent = [
+      headers.join(','),
+      ...filteredRisks.map(r => [
+        r.risk_id,
+        new Date(r.date).toLocaleDateString('pt-BR'),
+        r.nature,
+        `"${r.risk.replace(/"/g, '""')}"`,
+        `"${r.cause.replace(/"/g, '""')}"`,
+        `"${r.consequence.replace(/"/g, '""')}"`,
+        `"${r.trigger.replace(/"/g, '""')}"`,
+        r.status,
+        r.p,
+        r.i,
+        r.weight.toFixed(2),
+        r.severity
+      ].join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `registro-de-riscos-${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setIsExportMenuOpen(false);
+  };
+
+  const exportToPDF = async () => {
+    if (filteredRisks.length === 0) return;
+    
+    // @ts-ignore
+    const { default: jsPDF } = await import('jspdf');
+    // @ts-ignore
+    const { default: autoTable } = await import('jspdf-autotable');
+    
+    const doc = new jsPDF('l', 'mm', 'a4');
+    
+    doc.setFontSize(18);
+    doc.text('Registro de Riscos', 14, 22);
+    doc.setFontSize(11);
+    doc.setTextColor(100);
+    doc.text(`Exportado em: ${new Date().toLocaleString('pt-BR')}`, 14, 30);
+    
+    const tableColumn = ['ID', 'Data', 'Natureza', 'Risco', 'Status', 'P', 'I', 'Peso', 'Severidade'];
+    const tableRows = filteredRisks.map(r => [
+      r.risk_id,
+      new Date(r.date).toLocaleDateString('pt-BR'),
+      r.nature,
+      r.risk,
+      r.status,
+      r.p,
+      r.i,
+      r.weight.toFixed(2),
+      r.severity
+    ]);
+
+    autoTable(doc, {
+      head: [tableColumn],
+      body: tableRows,
+      startY: 35,
+      theme: 'grid',
+      styles: { fontSize: 8, cellPadding: 2 },
+      headStyles: { fillColor: [0, 102, 204], textColor: 255 },
+      alternateRowStyles: { fillColor: [245, 245, 245] }
+    });
+
+    doc.save(`registro-de-riscos-${new Date().toISOString().split('T')[0]}.pdf`);
+    setIsExportMenuOpen(false);
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
@@ -103,10 +181,47 @@ export default function RegistryPage() {
                       </span>
                     )}
                   </button>
-                  <button className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-3 md:px-4 py-2 bg-surface-container-high hover:bg-surface-container-highest text-on-surface-variant rounded-lg text-xs font-semibold transition-all">
-                    <Download className="w-3.5 h-3.5" />
-                    Exportar
-                  </button>
+                  <div className="relative flex-1 sm:flex-none">
+                    <button 
+                      onClick={() => setIsExportMenuOpen(!isExportMenuOpen)}
+                      className="w-full flex items-center justify-center gap-2 px-3 md:px-4 py-2 bg-surface-container-high hover:bg-surface-container-highest text-on-surface-variant rounded-lg text-xs font-semibold transition-all"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      Exportar
+                    </button>
+                    
+                    <AnimatePresence>
+                      {isExportMenuOpen && (
+                        <>
+                          <div 
+                            className="fixed inset-0 z-40" 
+                            onClick={() => setIsExportMenuOpen(false)}
+                          />
+                          <motion.div 
+                            initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                            className="absolute right-0 top-full mt-2 w-40 bg-surface-container-lowest border border-outline-variant/20 rounded-xl shadow-2xl z-50 py-2 overflow-hidden"
+                          >
+                            <button 
+                              onClick={exportToCSV}
+                              className="w-full flex items-center gap-3 px-4 py-2.5 text-xs font-bold text-on-surface-variant hover:bg-surface-container-high hover:text-primary transition-colors"
+                            >
+                              <FileJson className="w-4 h-4" />
+                              Formato CSV
+                            </button>
+                            <button 
+                              onClick={exportToPDF}
+                              className="w-full flex items-center gap-3 px-4 py-2.5 text-xs font-bold text-on-surface-variant hover:bg-surface-container-high hover:text-primary transition-colors"
+                            >
+                              <FilePdf className="w-4 h-4" />
+                              Formato PDF
+                            </button>
+                          </motion.div>
+                        </>
+                      )}
+                    </AnimatePresence>
+                  </div>
                 </div>
                 {activeFilterCount > 0 && (
                   <button 
