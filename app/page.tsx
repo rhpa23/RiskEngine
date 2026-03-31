@@ -81,7 +81,7 @@ export default function RegistryPage() {
             {/* Header */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 sm:gap-0">
               <div className="space-y-1">
-                <span className="text-[10px] font-bold tracking-widest text-primary uppercase">Visão Geral do Registro</span>
+                <span className="text-[10px] font-bold tracking-widest text-primary uppercase">Visão Geral</span>
                 <h2 className="text-2xl md:text-3xl font-headline font-extrabold text-on-surface tracking-tight">Registro de Riscos</h2>
               </div>
               <div className="flex flex-col items-end gap-2 w-full sm:w-auto">
